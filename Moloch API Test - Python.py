@@ -1,20 +1,24 @@
+#!/usr/bin/env python3
+
 # Courtesy of Dom A. Richardson
-
-# importing requests, csv, datetime packages
-# needed to pip install requests
-
-import requests
-# import pandas
-# import csv
-from requests.auth import HTTPDigestAuth
-import datetime
+# Testing getting multiple sets of data and writing them to xlsx
 
 # http://docs.python-requests.org/en/master/
 # requests package documentation
 
 # https://github.com/aol/moloch/wiki/API
 
-# set web authentication credentials
+# importing requests, csv, datetime packages
+# needed to pip install requests, xlsxwriter, xlrd
+import requests
+# import pandas
+import csv
+from requests.auth import HTTPDigestAuth
+import datetime
+import xlsxwriter
+import xlrd
+
+# set web authentication credentials if needed
 MOLOCH_USER = 'test'
 MOLOCH_PASSWORD = 'XXXXXXX'
 
@@ -22,28 +26,13 @@ MOLOCH_PASSWORD = 'XXXXXXX'
 print("Welcome to the Auto Baseline Tool")
 
 # Menu to set variables for the get request to moloch
-menu = {}
-menu['1'] = "Source IP"
-menu['2'] = "Destination IP"
-menu['3'] = "Protocols"
-menu['4'] = "HTTP Hostnames"
-options = menu.keys()
-
-for entry in options:
-        print(entry, menu[entry])
-selection = input("Please select: ")
-if selection == '1':
-    exp = "srcIp"
-elif selection == '2':
-    exp = "dstIp"
-elif selection == '3':
-    exp = "protocol"
-elif selection == '4':
-    exp = "http.host"
-else:
-    print("Unknown option selected")
-
-
+options = {}
+options['1'] = ("Source IP", "srcIp")
+options['2'] = ("Destination IP", "dstIp")
+options['3'] = ("Protocols", "protocol")
+options['4'] = ("HTTP Hostnames", "http.host")
+options['5'] = ("Body Magic", "http.bodyMagic")
+options['6'] = ("URI Paths", "http.path")
 
 # Create start and stop time inputs, and convert to epoch time
 start_time = input("Start time? (YYYY-MM-DD HH:MM:SS): ")
@@ -54,18 +43,25 @@ stop_time = input("Stop time? (YYYY-MM-DD HH:MM:SS): ")
 stop_epoch_time = datetime.datetime.strptime("%s" % stop_time, "%Y-%m-%d %H:%M:%S").timestamp()
 stop_epoch_time = int(stop_epoch_time)
 
-# basic get request with variables for putting in different stuff
-# test r = requests.get('http://xxxxxxxxxxxxxxx:8005/unique.txt?exp=protocol&counts=1&stopTime=1549157290&startTime=1549156854', auth=HTTPDigestAuth(MOLOCH_USER, MOLOCH_PASSWORD))
+# Write the data to Excel
+row = 0
+col = 0
+workbook = xlsxwriter.Workbook("testworkbook.xlsx")
+worksheet = workbook.add_worksheet()
+for types in options:
+    exp = options[types][1]
+    r = requests.get(("http://192.168.1.X:8005/unique.txt?exp=%s&counts=1&stopTime=%d&startTime=%d" % (exp, stop_epoch_time, start_epoch_time)), auth=HTTPDigestAuth(MOLOCH_USER, MOLOCH_PASSWORD))
+    r_converted = csv.reader(r.text.strip().split('\n'))
+    worksheet.write(row, col, "%s" % options[types][0])
+    worksheet.write(row, col + 1, "Counts")
+    row += 1
+    for line in r_converted:
+        worksheet.write(row, col, line[0])
+        worksheet.write(row, col+1, int(line[1]))
+        row += 1
+    col += 2
+    row = 0
 
-r = requests.get(("http://xxxxxxxxxxxx:8005/unique.txt?exp=%s&counts=1&stopTime=%d&startTime=%d" % (exp, stop_epoch_time, start_epoch_time)), auth=HTTPDigestAuth(MOLOCH_USER, MOLOCH_PASSWORD))
+workbook.close()
 
-# outputs and debug
-print(r.text)
-print(r.status_code)
-print(start_epoch_time)
-print(stop_epoch_time)
-
-# write each line into the CSV file (https://docs.python.org/3/library/functions.html#open)
-#with open('csvfile.csv', 'wb') as file:
-#    for l in r:
-#        file.write(l)
+print("Done!")
