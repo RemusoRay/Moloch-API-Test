@@ -50,7 +50,8 @@ workbook = xlsxwriter.Workbook("testworkbook.xlsx")
 worksheet = workbook.add_worksheet()
 for types in options:
     exp = options[types][1]
-    r = requests.get(("http://192.168.1.X:8005/unique.txt?exp=%s&counts=1&stopTime=%d&startTime=%d" % (exp, stop_epoch_time, start_epoch_time)), auth=HTTPDigestAuth(MOLOCH_USER, MOLOCH_PASSWORD))
+    r = requests.get(("http://192.168.1.X:8005/unique.txt?exp=%s&counts=1&stopTime=%d&startTime=%d"\
+        % (exp, stop_epoch_time, start_epoch_time)), auth=HTTPDigestAuth(MOLOCH_USER, MOLOCH_PASSWORD))
     r_converted = csv.reader(r.text.strip().split('\n'))
     worksheet.write(row, col, "%s" % options[types][0])
     worksheet.write(row, col + 1, "Counts")
